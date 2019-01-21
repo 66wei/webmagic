@@ -49,7 +49,9 @@ public class Request implements Serializable {
      * When it is set to TRUE, the downloader will not try to parse response body to text.
      *
      */
-    private boolean binarayContent = false;
+    private boolean binaryContent = false;
+
+    private String charset;
 
     public Request() {
     }
@@ -168,12 +170,22 @@ public class Request implements Serializable {
         this.requestBody = requestBody;
     }
 
-    public boolean isBinarayContent() {
-        return binarayContent;
+    public boolean isBinaryContent() {
+        return binaryContent;
     }
 
-    public void setBinarayContent(boolean binarayContent) {
-        this.binarayContent = binarayContent;
+    public Request setBinaryContent(boolean binaryContent) {
+        this.binaryContent = binaryContent;
+        return this;
+    }
+
+    public String getCharset() {
+        return charset;
+    }
+
+    public Request setCharset(String charset) {
+        this.charset = charset;
+        return this;
     }
 
     @Override

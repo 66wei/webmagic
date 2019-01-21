@@ -2,7 +2,6 @@ package us.codecraft.webmagic.downloader;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
-import org.apache.http.annotation.ThreadSafe;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
@@ -30,7 +29,6 @@ import java.util.Map;
  * @author code4crafter@gmail.com <br>
  * @since 0.1.0
  */
-@ThreadSafe
 public class HttpClientDownloader extends AbstractDownloader {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -83,7 +81,7 @@ public class HttpClientDownloader extends AbstractDownloader {
         Page page = Page.fail();
         try {
             httpResponse = httpClient.execute(requestContext.getHttpUriRequest(), requestContext.getHttpClientContext());
-            page = handleResponse(request, task.getSite().getCharset(), httpResponse, task);
+            page = handleResponse(request, request.getCharset() != null ? request.getCharset() : task.getSite().getCharset(), httpResponse, task);
             onSuccess(request);
             logger.info("downloading page success {}", request.getUrl());
             return page;
@@ -112,8 +110,12 @@ public class HttpClientDownloader extends AbstractDownloader {
         String contentType = httpResponse.getEntity().getContentType() == null ? "" : httpResponse.getEntity().getContentType().getValue();
         Page page = new Page();
         page.setBytes(bytes);
-        if (!request.isBinarayContent()){
-            page.setRawText(getResponseContent(charset, contentType, bytes));
+        if (!request.isBinaryContent()){
+            if (charset == null) {
+                charset = getHtmlCharset(contentType, bytes);
+            }
+            page.setCharset(charset);
+            page.setRawText(new String(bytes, charset));
         }
         page.setUrl(new PlainText(request.getUrl()));
         page.setRequest(request);
@@ -125,21 +127,12 @@ public class HttpClientDownloader extends AbstractDownloader {
         return page;
     }
 
-    private String getResponseContent(String charset, String contentType, byte[] bytes) throws IOException {
-        if (charset == null) {
-            String htmlCharset = getHtmlCharset(contentType, bytes);
-            if (htmlCharset != null) {
-                return new String(bytes, htmlCharset);
-            } else {
-                logger.warn("Charset autodetect failed, use {} as charset. Please specify charset in Site.setCharset()", Charset.defaultCharset());
-                return new String(bytes);
-            }
-        } else {
-            return new String(bytes, charset);
-        }
-    }
-
     private String getHtmlCharset(String contentType, byte[] contentBytes) throws IOException {
-        return CharsetUtils.detectCharset(contentType, contentBytes);
+        String charset = CharsetUtils.detectCharset(contentType, contentBytes);
+        if (charset == null) {
+            charset = Charset.defaultCharset().name();
+            logger.warn("Charset autodetect failed, use {} as charset. Please specify charset in Site.setCharset()", Charset.defaultCharset());
+        }
+        return charset;
     }
 }
